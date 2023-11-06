@@ -1,0 +1,66 @@
+{
+    "connectome":{
+        "loading":{
+            "conntility": "/scratch/datasets/microns_reimann/microns_mm3_connectome.h5",
+            "args": ["condensed"]
+        },
+        "subnetwork": {
+            "base_volume": [
+            ],
+            "simplices": [
+                {
+                    "column": "cell_type",
+                    "function": "isin",
+                    "args": [["23P", "4P", "6CT", "5P_IT", "5P_PT", "5P_NP", "6IT"]]
+                },
+                {
+                    "column": "x_nm",
+                    "function": "gt",
+                    "args": [700000]
+                },
+                {
+                    "column": "x_nm",
+                    "function": "lt",
+                    "args": [1200000]
+                },
+                {
+                    "column": "z_nm",
+                    "function": "gt",
+                    "args": [700000]
+                },
+                {
+                    "column": "z_nm",
+                    "function": "lt",
+                    "args": [1000000]
+                }
+            ],
+            "neurons": {
+                "name": "Inhibitory",
+                "filters": [
+                    {
+                        "column": "cell_type",
+                        "function": "isin",
+                        "args": [["BC", "MC", "NGC"]]
+                    }
+                ]
+            }
+        }
+    },
+    "analysis": {
+        "simplex_dimension": 6,
+        "use_weight": 0,
+        "min_degrees": {"In": 200, "Out": 200},
+        "normalize_mat": 0,
+        "clustering": {
+            "use": "source",
+            "cluster_param": 2.2,
+            "merge_smaller_than": 0.05,
+            "normalize_cluster_paths": "target",
+            "normalize_cluster_disyn": "target",
+            "cutoff": {
+                "strategy": "percentile_control",
+                "value": 95
+            }
+        }
+    }
+}
