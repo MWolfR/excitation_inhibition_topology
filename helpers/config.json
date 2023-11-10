@@ -62,5 +62,15 @@
                 "value": 95
             }
         }
+    },
+    "plotting":{
+        "networks":{
+            "nrn_minimum_indegree": 20,
+            "nrn_minimum_outdegree": 20,
+            "nrn_num_picked": 20,
+            "positioning":[
+                "raw", "percentile", "mean_pos", "horizontal"
+            ]
+        }
     }
 }

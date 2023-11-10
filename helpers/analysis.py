@@ -178,19 +178,21 @@ def simplex_clustering(ol_src, ol_tgt, clst_param):
     return pandas.DataFrame({"src_grp": lbls_src, "tgt_grp": lbls_tgt})
 
 
-def simplex_cluster_connectivity(grp_df, normalization):
-    values = grp_df.value_counts().sort_index().unstack("tgt_grp", fill_value=0)
+def simplex_cluster_connectivity(data_df, grp_df, ugid, normalization):
+    full_overlap = simplex_overlap_in_positions(data_df, numpy.arange(data_df.shape[1]), ugid)
+    return simplex_cluster_disyn(full_overlap, grp_df, normalization, cutoff=None)
+    # values = grp_df.value_counts().sort_index().unstack("tgt_grp", fill_value=0)
 
-    if normalization == "None":
-        pass
-    elif normalization == "target":
-        values = values / grp_df["tgt_grp"].value_counts().sort_index()
-    elif normalization == "source":
-        values = (values.transpose() / grp_df["src_grp"].value_counts().sort_index()).transpose()
-    elif normalization == "pairs":
-        pairs = grp_df["src_grp"].value_counts().sort_index().values.reshape((-1, 1)) * grp_df["tgt_grp"].value_counts().sort_index().values.reshape((1, -1))
-        values = values / pairs
-    return values
+    # if normalization == "None":
+    #     pass
+    # elif normalization == "target":
+    #     values = values / grp_df["tgt_grp"].value_counts().sort_index()
+    # elif normalization == "source":
+    #     values = (values.transpose() / grp_df["src_grp"].value_counts().sort_index()).transpose()
+    # elif normalization == "pairs":
+    #     pairs = grp_df["src_grp"].value_counts().sort_index().values.reshape((-1, 1)) * grp_df["tgt_grp"].value_counts().sort_index().values.reshape((1, -1))
+    #     values = values / pairs
+    # return values
 
 def simplex_cluster_disyn(disyn_mat, grp_df, normalization, cutoff=None):
     lbls_src = grp_df["src_grp"]

@@ -115,3 +115,99 @@ def plot_overlap_vs_disyn_corr(ol_disyn_cc, column_names):
     ax.set_yticklabels(column_names)
     return fig
 
+def _position_normalize_by_percentile(pos):
+    pos = pos - pos.mean(axis=0)
+    nrm = numpy.linalg.norm(pos, axis=1)
+    percs = numpy.percentile(nrm, numpy.arange(101))
+    tgt_nrm = numpy.interp(nrm, percs, numpy.arange(101))
+    tgt_pos = tgt_nrm.reshape((-1, 1)) * pos / nrm.reshape((-1, 1))
+    return tgt_pos.values
+
+def _position_horizontalize(pos, mean_loc, M, node_is_exc):
+    pos = pos - pos.mean(axis=0)
+    new_y = numpy.arctan2(pos["x"], pos["y"])
+    new_x = numpy.zeros(len(new_y))
+    new_x[node_is_exc] = mean_loc.values
+
+    tmp_mat = (M.array[numpy.ix_(node_is_exc, ~node_is_exc)] > 0).astype(int).transpose()
+
+    new_x[~node_is_exc] = numpy.dot(tmp_mat, mean_loc.values.reshape((-1, 1)))[:, 0] / tmp_mat.sum(axis=1)
+    return numpy.vstack([new_x, new_y]).transpose()
+
+def _position_normalize_by_mean_pos(pos, mean_loc, M, node_is_exc):
+    pos = _position_horizontalize(pos, mean_loc, M, node_is_exc)
+    x = pos[:, 0]; y = pos[:, 1]
+    circ_pos = numpy.vstack([numpy.cos(y) * x,
+                         numpy.sin(y) * x])
+    return circ_pos.transpose()
+
+def plot_simplex_group_as_network(smplx_tgt_ids, M, Msmpl, Mnrn, simplices, s_n_paths, n_s_paths, name_nrn,
+                                  tgt_dim, cfg):
+    import networkx
+    import pandas
+    import connalysis
+
+    nrn_min_indeg = cfg["nrn_minimum_indegree"]
+    nrn_min_outdeg = cfg["nrn_minimum_outdegree"]
+    nrn_pick_n = cfg["nrn_num_picked"]
+    position_strategies = cfg.get("positioning", [None])
+
+    # All gids associated with the simplices
+    exc_gids = Msmpl.gids[numpy.unique(simplices[smplx_tgt_ids.values])]
+
+    # Find exemplary connected neurons from population nrn
+    i_degs = (s_n_paths.loc[smplx_tgt_ids].groupby(name_nrn).count(),
+              n_s_paths.loc[smplx_tgt_ids].groupby(name_nrn).count())
+    is_strongly_connected = (i_degs[0] > nrn_min_indeg) & (i_degs[1] > nrn_min_outdeg)
+    inh_gids = Mnrn.gids[numpy.random.choice(is_strongly_connected.index[is_strongly_connected],
+                                             nrn_pick_n, replace=False)]
+
+    # Relevant subnetworks
+    Msub = M.subpopulation(exc_gids)
+    Mfl = M.subpopulation(numpy.hstack([inh_gids, exc_gids]))
+    node_is_exc = numpy.in1d(Mfl.gids, exc_gids)
+
+    # For the simplex subnetwork: For each node its mean simplex position. Determines color
+    loc_df = connalysis.network.topology.list_simplices_by_dimension(Msub.matrix)[tgt_dim]
+    loc_df = pandas.DataFrame(loc_df, columns=numpy.arange(tgt_dim + 1))
+    mean_loc = pandas.concat([loc_df[_col] for _col in loc_df.columns], axis=0,
+                             keys=loc_df.columns).reset_index().groupby(0)["level_0"].mean()
+    cols = plt.cm.coolwarm(mean_loc.values / tgt_dim)
+
+    # All colors: The non-simplex neurons in green
+    cols_full = numpy.zeros((len(Mfl), cols.shape[1]))
+    cols_full[:, 1] = 1.0
+    cols_full[:, 3] = 1.0
+    cols_full[node_is_exc, :] = cols
+
+    # Create DiGraph
+    grph = networkx.DiGraph(Mfl.array)
+
+    # simplex edges in black, non-simplex edges in green
+    e = numpy.vstack(list(grph.edges))
+    edge_is_exc = node_is_exc[e[:, 0]]
+    edge_cols = numpy.zeros((len(edge_is_exc), 3))
+    edge_cols[~edge_is_exc, 1] = 1
+
+    pos = pandas.DataFrame(networkx.spring_layout(grph, iterations=50), index=["x", "y"]).transpose()
+    figs = []
+    for positioning in position_strategies:
+        if positioning is not None:
+            if positioning == "percentile":
+                use_pos = _position_normalize_by_percentile(pos)
+            elif positioning == "horizontal":
+                use_pos = _position_horizontalize(pos, mean_loc, Mfl, node_is_exc)
+            elif positioning == "mean_pos":
+                use_pos = _position_normalize_by_mean_pos(pos, mean_loc, Mfl, node_is_exc)
+            elif positioning == "raw":
+                use_pos = pos.values
+            else:
+                raise ValueError(positioning)
+        else:
+            use_pos = pos.values
+
+        figs.append(plt.figure(figsize=(7, 7)))
+        print(use_pos)
+        networkx.draw_networkx(grph, node_size=50, node_color=cols_full, pos=use_pos,
+                            width=0.25, with_labels=False, edge_color=edge_cols)
+    return figs
