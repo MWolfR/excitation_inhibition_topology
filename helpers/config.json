@@ -1,5 +1,6 @@
 {
     "connectome":{
+        "cols_xyz": ["x_nm", "y_nm", "z_nm"],
         "loading":{
             "conntility": "/scratch/datasets/microns_reimann/microns_mm3_connectome.h5",
             "args": ["condensed"]
@@ -55,8 +56,8 @@
             "use": "source",
             "cluster_param": 2.2,
             "merge_smaller_than": 0.05,
-            "normalize_cluster_paths": "target",
-            "normalize_cluster_disyn": "target",
+            "normalize_cluster_paths": "pairs",
+            "normalize_cluster_disyn": "pairs",
             "cutoff": {
                 "strategy": "percentile_control",
                 "value": 95
@@ -64,6 +65,7 @@
         }
     },
     "plotting":{
+        "output_root": "plots/microns/0",
         "networks":{
             "nrn_minimum_indegree": 20,
             "nrn_minimum_outdegree": 20,
@@ -72,5 +74,9 @@
                 "raw", "percentile", "mean_pos", "horizontal"
             ]
         }
+    },
+    "save":{
+        "filename": "save/microns_results.h5",
+        "id": 0
     }
 }

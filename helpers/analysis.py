@@ -13,7 +13,7 @@ def get_simplex_dataframes(M, dimensions):
     ugids = [numpy.unique(_df.values) for _df in dfs]
     ugid_lsts = [list(_ugids) for _ugids in ugids]
     df_idxs = [
-        _df.map(lambda _x: _ugid_lst.index(_x))
+        _df.applymap(lambda _x: _ugid_lst.index(_x))
         for _df, _ugid_lst in tqdm.tqdm(list(zip(dfs, ugid_lsts)))
     ]
     return simplices, dfs, df_idxs, ugids
@@ -130,6 +130,14 @@ def get_disynaptic_con_mat(s_n_paths, n_s_paths, str_neuron_population, tgt_shap
 
     if normalize: m_smpl_smpl = numpy.sqrt(m_smpl_smpl)
     return m_smpl_smpl
+
+
+def histogram_data_and_ctrl(m_data, m_ctrl, bins):
+    if not hasattr(bins, "__iter__"):
+        bins = numpy.linspace(0, m_data.max(), bins)
+    H_data = numpy.histogram(m_data.flatten(), bins=bins)[0]
+    H_ctrl = numpy.histogram(m_ctrl.flatten(), bins=bins)[0]
+    return pandas.DataFrame({"Data": H_data, "Control": H_ctrl}, index=bins[:-1])
 
 
 def simplex_overlap_in_positions(data_df, pos_idx, ugid):

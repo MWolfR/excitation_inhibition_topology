@@ -22,20 +22,41 @@ def plot_simplex_divergences(divergences):
     plt.legend()
     return fig
 
-def plot_inout_degrees(m_nrn_smpl, m_smpl_nrn):
-    outdeg = numpy.array(m_nrn_smpl.sum(axis=1)).flatten()
-    indeg = numpy.array(m_smpl_nrn.sum(axis=0)).flatten()
 
-    fig = plt.figure(figsize=(3.5, 3))
-    ax = fig.gca()
-    ax.plot(outdeg, indeg, '.', ms=2)
-    # plt.axis("equal")
-    plt.gca().set_frame_on(False)
+def indegree_outdegree_figure(indeg, outdeg, nbins):
+    from scipy.interpolate import RegularGridInterpolator
+    fig = plt.figure(figsize=(4, 4))
+    
+    xbins = numpy.linspace(0, indeg.max() + 1, nbins)
+    ybins = numpy.linspace(0, outdeg.max() + 1, nbins)
+    H = numpy.histogram2d(indeg, outdeg, bins=(xbins, ybins))[0]
+    
+    ip = RegularGridInterpolator((xbins[:-1], ybins[:-1]), H, bounds_error=False, fill_value=1)
+    c = ip((indeg, outdeg))
+    
+    ax = fig.add_axes((0.1, 0.1, 0.65, 0.65))
+    ax.scatter(indeg, outdeg, c=numpy.sqrt(c), s=2)
+    ax.set_frame_on(False)
+    ax.set_xlim([xbins[0], xbins[-1]])
+    ax.set_ylim([ybins[0], ybins[-1]])
+    ax.set_xlabel("Indegree")
+    ax.set_ylabel("Outdegree")
+    
+    ax = fig.add_axes((0.1, 0.8, 0.65, 0.15))
+    ax.plot(xbins[:-1], H.sum(axis=1) + 1, color="black")
+    ax.set_xlim([xbins[0], xbins[-1]])
+    ax.set_frame_on(False)
+    ax.set_xticks([])
+    ax.set_yscale("log")
+    
+    ax = fig.add_axes((0.8, 0.1, 0.15, 0.65))
+    ax.plot(H.sum(axis=0) + 1, ybins[:-1], color="black")
+    ax.set_ylim([ybins[0], ybins[-1]])
+    ax.set_frame_on(False)
+    ax.set_yticks([])
+    ax.set_xscale("log")
 
-    plt.gca().set_xlabel("Outdegree (to simplices)")
-    plt.gca().set_ylabel("Indegree (from simplices)")
-    print(numpy.corrcoef(indeg, outdeg))
-    return fig, indeg, outdeg
+    return fig
 
 def plot_disynaptic_path_sum(mat_disyn):
     ticks = [0, (mat_disyn.shape[0] - 1) / 2, mat_disyn.shape[0] - 1]
@@ -58,6 +79,31 @@ def plot_position_degrees(paths_df):
     ax.set_ylabel("Simplex")
     ax.set_xlabel("Position")
     return fig
+
+def summary_position_degrees(all_classic, all_smpl):
+    fig = plt.figure(figsize=(2.5, 3.5))
+    ax = fig.add_subplot(2, 1, 1)
+    cols = ["red", "blue"]
+    offset = [-0.01, 0.01]
+
+    for data, col, o in zip([all_classic["In"], all_smpl["In"]], cols, offset):
+        mn = data.mean(axis=0)
+        sd = data.std(axis=0)
+        x = numpy.linspace(0, 1, len(mn)) + o
+        ax.errorbar(x, mn, yerr=sd, color=col, marker='o')
+    ax.set_frame_on(False)
+    ax.set_xticks([0, 0.5, 1]); ax.set_xticklabels(["Source", "->", "Sink"])
+
+    ax = fig.add_subplot(2, 1, 2)
+
+    for data, col, o in zip([all_classic["Out"], all_smpl["Out"]], cols, offset):
+        mn = data.mean(axis=0)
+        sd = data.std(axis=0)
+        x = numpy.linspace(0, 1, len(mn)) + o
+        ax.errorbar(x, mn, yerr=sd, color=col, marker='o')
+    ax.set_frame_on(False)
+    ax.set_xticks([0, 0.5, 1]); ax.set_xticklabels(["Source", "->", "Sink"])
+    return fig
     
 def plot_position_mean(paths_df):
     fig = plt.figure(figsize=(4.5, 3.5))
@@ -68,21 +114,20 @@ def plot_position_mean(paths_df):
     ax.set_xlabel("Position")
     return fig
 
-def compare_disyn_inhibition(m_data, m_ctrl):
-    bins = numpy.linspace(0, m_data.max(), 101)
-    H_data = numpy.histogram(m_data.flatten(), bins=bins)[0]
-    H_ctrl = numpy.histogram(m_ctrl.flatten(), bins=bins)[0]
+def compare_disyn_inhibition(hists):
+    fig = plt.figure(figsize=(3.5, 3))
+    ax = fig.gca()
 
-    plt.plot(bins[:-1], H_data, label="Data")
-    plt.plot(bins[:-1], H_ctrl, label="Shuffled")
-
-    plt.gca().set_xlabel("Disyn. connection strength")
-    plt.gca().set_ylabel("Simplex pairs")
+    for col in hists.columns:
+        ax.plot(hists[col], label=col)
+    
+    ax.set_xlabel("Disyn. connection strength")
+    ax.set_ylabel("Simplex pairs")
     plt.legend()
-    return plt.gcf()
+    return fig
     
 def plot_overlaps_vs_disyn(ol_disyn_mat):
-    fig = plt.figure(figsize=(6, 6))
+    fig = plt.figure(figsize=(3, 3))
     ax_main = fig.add_axes([0.1, 0.1, 0.6, 0.6])
     ax_tgt = fig.add_axes([0.1, 0.75, 0.6, 0.2])
     ax_src = fig.add_axes([0.75, 0.1, 0.2, 0.6])
@@ -106,6 +151,25 @@ def plot_overlaps_vs_disyn(ol_disyn_mat):
     return fig
 
 def plot_overlap_vs_disyn_corr(ol_disyn_cc, column_names):
+    fig = plt.figure(figsize=(.75, 1.75))
+    ax = fig.gca()
+
+    baseline = 0.2
+    pairs = [("src", "inh"), ("tgt", "inh"), ("src", "tgt")]
+    cols = ["red", "blue", "grey"]
+    lbls = []
+    for i, pair in enumerate(pairs):
+        idx = list(column_names).index(pair[0])
+        idy = list(column_names).index(pair[1])
+        ax.bar(i, ol_disyn_cc[idx, idy] - baseline, bottom=baseline, color=cols[i],
+            label="{0} - {1}".format(*pair))
+        lbls.append("{0} - {1}".format(*pair))
+    ax.set_xticks(range(len(lbls))); ax.set_xticklabels(lbls, rotation="vertical")
+    ax.set_ylabel("Pearson correlation")
+    ax.set_frame_on(False)
+    return fig
+
+def plot_overlap_vs_disyn_corr_l(ol_disyn_cc, column_names):
     fig = plt.figure(figsize=(3.5, 3.5))
     ax = fig.gca()
     plt.colorbar(ax.imshow(ol_disyn_cc, clim=[0, 1.0]))
@@ -132,6 +196,7 @@ def _position_horizontalize(pos, mean_loc, M, node_is_exc):
     tmp_mat = (M.array[numpy.ix_(node_is_exc, ~node_is_exc)] > 0).astype(int).transpose()
 
     new_x[~node_is_exc] = numpy.dot(tmp_mat, mean_loc.values.reshape((-1, 1)))[:, 0] / tmp_mat.sum(axis=1)
+    new_y = new_y * (new_x + new_x.max())
     return numpy.vstack([new_x, new_y]).transpose()
 
 def _position_normalize_by_mean_pos(pos, mean_loc, M, node_is_exc):
@@ -207,7 +272,16 @@ def plot_simplex_group_as_network(smplx_tgt_ids, M, Msmpl, Mnrn, simplices, s_n_
             use_pos = pos.values
 
         figs.append(plt.figure(figsize=(7, 7)))
-        print(use_pos)
         networkx.draw_networkx(grph, node_size=50, node_color=cols_full, pos=use_pos,
                             width=0.25, with_labels=False, edge_color=edge_cols)
     return figs
+
+def save_plot(figs, root, name):
+    import os
+    if not os.path.exists(root):
+        os.makedirs(root)
+    if not isinstance(figs, list):
+        figs = [figs]
+    for i, fig in enumerate(figs):
+        fn = os.path.join(root, name + str(i) + ".pdf")
+        fig.savefig(fn)
