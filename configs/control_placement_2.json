@@ -74,10 +74,18 @@
           }
         ]
       }
+    },
+    "randomization": {
+      "cols_coords": [
+        "x_nm",
+        "y_nm",
+        "z_nm"
+      ],
+      "model_name": "distance_dependent"
     }
   },
   "analysis": {
-    "simplex_dimension": 6,
+    "simplex_dimension": 3,
     "use_weight": 0,
     "min_degrees": {
       "In": 200,
@@ -97,7 +105,7 @@
     }
   },
   "plotting": {
-    "output_root": "plots/microns/2",
+    "output_root": "plots/control/2",
     "networks": {
       "nrn_minimum_indegree": 20,
       "nrn_minimum_outdegree": 20,
@@ -111,7 +119,7 @@
     }
   },
   "save": {
-    "filename": "/mnt/md0/reimann/microns_results.h5",
+    "filename": "/mnt/md0/reimann/control_results.h5",
     "id": 2
   }
 }

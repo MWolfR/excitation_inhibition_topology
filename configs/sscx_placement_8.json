@@ -1,60 +1,55 @@
 {
   "connectome": {
     "cols_xyz": [
-      "x_nm",
-      "y_nm",
-      "z_nm"
+      "ss_flat_x",
+      "depth",
+      "ss_flat_y"
     ],
     "loading": {
-      "conntility": "/scratch/datasets/microns_reimann/microns_mm3_connectome.h5",
-      "args": [
-        "condensed"
-      ]
+      "snap": {
+        "circuit": "/scratch/models/O1_2023a/circuit_config.json",
+        "connectome": "S1nonbarrel_neurons__S1nonbarrel_neurons__chemical",
+        "flatmap": "/scratch/models/O1_2023a/atlas/ss_fm.nrrd"
+      }
     },
     "subnetwork": {
       "base_volume": [],
       "simplices": [
         {
-          "column": "cell_type",
+          "column": "synapse_class",
           "function": "isin",
           "args": [
             [
-              "23P",
-              "4P",
-              "6CT",
-              "5P_IT",
-              "5P_PT",
-              "5P_NP",
-              "6IT"
+              "EXC"
             ]
           ]
         },
         {
-          "column": "x_nm",
+          "column": "ss_flat_x",
           "function": "gt",
           "args": [
-            550000.0
+            1400.0
           ]
         },
         {
-          "column": "x_nm",
+          "column": "ss_flat_x",
           "function": "lt",
           "args": [
-            1050000.0
+            1700.0
           ]
         },
         {
-          "column": "z_nm",
+          "column": "ss_flat_y",
           "function": "gt",
           "args": [
-            750000.0
+            2450.0
           ]
         },
         {
-          "column": "z_nm",
+          "column": "ss_flat_y",
           "function": "lt",
           "args": [
-            1050000.0
+            2750.0
           ]
         }
       ],
@@ -62,14 +57,40 @@
         "name": "Inhibitory",
         "filters": [
           {
-            "column": "cell_type",
+            "column": "synapse_class",
             "function": "isin",
             "args": [
               [
-                "BC",
-                "MC",
-                "NGC"
+                "INH"
               ]
+            ]
+          },
+          {
+            "column": "ss_flat_x",
+            "function": "gt",
+            "args": [
+              1300.0
+            ]
+          },
+          {
+            "column": "ss_flat_x",
+            "function": "lt",
+            "args": [
+              1800.0
+            ]
+          },
+          {
+            "column": "ss_flat_y",
+            "function": "gt",
+            "args": [
+              2350.0
+            ]
+          },
+          {
+            "column": "ss_flat_y",
+            "function": "lt",
+            "args": [
+              2850.0
             ]
           }
         ]
@@ -77,11 +98,11 @@
     }
   },
   "analysis": {
-    "simplex_dimension": 6,
+    "simplex_dimension": 5,
     "use_weight": 0,
     "min_degrees": {
-      "In": 200,
-      "Out": 200
+      "In": 100,
+      "Out": 100
     },
     "normalize_mat": 0,
     "clustering": {
@@ -97,7 +118,7 @@
     }
   },
   "plotting": {
-    "output_root": "plots/microns/2",
+    "output_root": "plots/sscx/8",
     "networks": {
       "nrn_minimum_indegree": 20,
       "nrn_minimum_outdegree": 20,
@@ -111,7 +132,7 @@
     }
   },
   "save": {
-    "filename": "/mnt/md0/reimann/microns_results.h5",
-    "id": 2
+    "filename": "save/sscx_results.h5",
+    "id": 8
   }
 }
