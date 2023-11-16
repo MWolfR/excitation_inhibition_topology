@@ -74,8 +74,11 @@ def plot_disynaptic_path_sum(mat_disyn):
 def plot_position_degrees(paths_df):
     fig = plt.figure(figsize=(3.5, 3.5))
     ax = fig.gca()
-    ax.imshow(paths_df.groupby(["Simplex", "Position"]).count().unstack("Position", fill_value=0),
-              aspect="auto", interpolation="nearest")
+    I = paths_df.groupby(["Simplex", "Position"]).count().unstack("Position", fill_value=0)
+    img = ax.imshow(I, aspect="auto", interpolation="nearest")
+    plt.colorbar(img)
+    tcks = [0, (I.shape[1] - 1) / 2, I.shape[1] - 1]
+    ax.set_xticks(tcks); ax.set_xticklabels(["Source", "->", "Target"])
     ax.set_ylabel("Simplex")
     ax.set_xlabel("Position")
     return fig
