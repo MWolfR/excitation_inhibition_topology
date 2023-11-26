@@ -1,0 +1,77 @@
+{
+  "connectome": {
+    "loading": {
+      "conntility": "/home/reimann/Documents/data/SSCX/SSCX_O1_cmat.h5"
+    },
+    "save": "/home/reimann/Documents/data/SSCX/SSCX_O1_enhanced_4.h5",
+    "override": [
+      {
+        "pathway": [
+          {
+            "column": "synapse_class",
+            "function": "isin",
+            "args": [
+              [
+                "EXC"
+              ]
+            ]
+          },
+          {
+            "column": "ss_flat_x",
+            "function": "gt",
+            "args": [
+              1300.0
+            ]
+          },
+          {
+            "column": "ss_flat_x",
+            "function": "lt",
+            "args": [
+              1500.0
+            ]
+          },
+          {
+            "column": "ss_flat_y",
+            "function": "gt",
+            "args": [
+              2350.0
+            ]
+          },
+          {
+            "column": "ss_flat_y",
+            "function": "lt",
+            "args": [
+              2550.0
+            ]
+          }
+        ],
+        "rewire":[
+          {
+            "dims_add": [4, 5, 6],
+            "dims_remove": [1, 2, 3],
+            "n": 2000,
+            "positions": [0, 1, 2, 3]
+          },
+          {
+            "dims_add": [3, 4, 5],
+            "dims_remove": [1, 2],
+            "n": 10000,
+            "positions": [0, 1, 2]
+          },
+          {
+            "dims_add": [3, 4, 5],
+            "dims_remove": [1, 2],
+            "n": 10000,
+            "positions": [0, 1, 2]
+          },
+          {
+            "dims_add": [3, 4, 5],
+            "dims_remove": [1, 2],
+            "n": 10000,
+            "positions": [0, 1]
+          }
+        ]
+      }
+    ]
+  }
+}

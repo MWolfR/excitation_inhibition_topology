@@ -27,10 +27,72 @@ def load_network(cfg):
                                                         connectome=connectome,
                                                         load_full=True)
         return cmat
+    elif "npz" in cfg.keys():
+        from scipy import sparse
+        mat = sparse.load_npz(cfg["npz"])
+        vertices = None
+        if "vertices" in cfg.keys():
+            vertices = pandas.read_pickle(cfg["vertices"])
+        return conntility.ConnectivityMatrix(mat, vertex_properties=vertices)
 
 def filter_network(M, cfg):
     for fltr in cfg:
         idx = M.index(fltr["column"])
         M = getattr(idx, fltr["function"])(*fltr.get("args", []), **fltr.get("kwargs", {}))
     return M
+
+def _pathway_idxx(M, cfg):
+    if isinstance(cfg, dict):
+        Msub = filter_network(M, cfg["pre"])
+        idxx_pre = numpy.nonzero(numpy.in1d(M.gids, Msub.gids))[0]
+        Msub = filter_network(M, cfg["post"])
+        idxx_post = numpy.nonzero(numpy.in1d(M.gids, Msub.gids))[0]
+    else:
+        Msub = filter_network(M, cfg)
+        idxx_pre = numpy.nonzero(numpy.in1d(M.gids, Msub.gids))[0]
+        idxx_post = idxx_pre
+    return idxx_pre, idxx_post
+
+def load_override_connectome(cfg):
+    import pickle
+    from scipy import sparse
+    assert "pkl" in cfg.keys()
+    with open(cfg["pkl"], 'rb') as f: 
+        mat=pickle.load(f) 
+    if "key" in cfg.keys():
+        lst_keys = cfg["key"]
+        if not isinstance(lst_keys, list): lst_keys = [lst_keys]
+        for _k in lst_keys:
+            mat = mat[_k]
+    assert isinstance(mat, sparse.spmatrix)
+    return mat
+
+def override_connectivity(M, cfg):
+    for override in cfg:
+        print("Executing override...")
+        idxx_pre, idxx_post = _pathway_idxx(M, override["pathway"])
+        if "matrix" in override.keys():
+            repl_mat = load_override_connectome(override["matrix"])
+        elif "rewire" in override.keys():
+            from .rewiring import rewire_step
+
+            repl_mat = filter_network(M, override["pathway"])
+            for rw in override["rewire"]:
+                print("Executing rewiring...")
+                rewire_step(repl_mat, rw["dims_add"],
+                            rw["dims_remove"], rw["n"],
+                            rw["positions"])
+            repl_mat = repl_mat.matrix
+        assert len(idxx_pre) == repl_mat.shape[0]
+        assert len(idxx_post) == repl_mat.shape[1]
+
+        is_pw = M._edge_indices["row"].isin(idxx_pre) & M._edge_indices["col"].isin(idxx_post)
+        repl_mat = repl_mat.tocoo()
+        repl_df = pandas.DataFrame({"row": idxx_pre[repl_mat.row], "col": idxx_post[repl_mat.col]})
+        M._edge_indices = pandas.concat([M._edge_indices.loc[~is_pw], repl_df], axis=0).reset_index(drop=True)
+
+        assert len(M.edge_properties) == 1
+        M._edges = pandas.concat([M.edges.loc[~is_pw], pandas.DataFrame({M.edge_properties[0]: repl_mat.data})],
+                                axis=0).reset_index(drop=True)
+
 

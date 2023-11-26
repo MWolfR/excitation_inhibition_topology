@@ -4,18 +4,23 @@ import connalysis
 
 import tqdm
 
+def compress_id_ranges(dfs):
+    ugids = [numpy.unique(_df.values) for _df in dfs]
+    los = [pandas.Series(_gids, name="gid").reset_index().set_index("gid")["index"]
+       for _gids in ugids]
+    df_idxs = [
+        _df.apply(lambda _col: _lo[_col].values, axis=0)
+        for _df, _lo in tqdm.tqdm(list(zip(dfs, los)))
+    ]
+    return df_idxs, ugids
+
 def get_simplex_dataframes(M, dimensions):
     simplices = connalysis.network.topology.list_simplices_by_dimension(M.matrix)
 
     dfs = [pandas.DataFrame(M.gids[_smpl])
            for _smpl in simplices.loc[dimensions]]
     for _df in dfs: _df.index.name = "Simplex"
-    ugids = [numpy.unique(_df.values) for _df in dfs]
-    ugid_lsts = [list(_ugids) for _ugids in ugids]
-    df_idxs = [
-        _df.applymap(lambda _x: _ugid_lst.index(_x))
-        for _df, _ugid_lst in tqdm.tqdm(list(zip(dfs, ugid_lsts)))
-    ]
+    df_idxs, ugids = compress_id_ranges(dfs)
     return simplices, dfs, df_idxs, ugids
 
 
@@ -224,4 +229,10 @@ def simplex_cluster_disyn(disyn_mat, grp_df, normalization, cutoff=None):
     return values_inh
 
 
+def edge_participation_df(M):
+    ep = connalysis.network.topology.edge_participation(M.matrix)
+    idx = pandas.DataFrame(numpy.vstack(ep.index), columns=["row", "col"])
+    ep.index = pandas.MultiIndex.from_frame(idx)
+    ep = ep.loc[pandas.MultiIndex.from_frame(M._edge_indices)]
+    return ep
 
