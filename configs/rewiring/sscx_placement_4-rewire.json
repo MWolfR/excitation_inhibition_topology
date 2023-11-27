@@ -1,9 +1,13 @@
 {
   "connectome": {
     "loading": {
-      "conntility": "/home/reimann/Documents/data/SSCX/SSCX_O1_cmat.h5"
+      "snap": {
+        "circuit": "/scratch/models/O1_2023a/circuit_config.json",
+        "connectome": "S1nonbarrel_neurons__S1nonbarrel_neurons__chemical",
+        "flatmap": "/scratch/models/O1_2023a/atlas/ss_fm.nrrd"
+      }
     },
-    "save": "/home/reimann/Documents/data/SSCX/SSCX_O1_enhanced_4.h5",
+    "save": "data/SSCX/SSCX_O1_enhanced_4.h5",
     "override": [
       {
         "pathway": [
