@@ -61,9 +61,19 @@ def add_and_remove(M, to_add, to_remove):
         pandas.DataFrame({"row": to_add[:, 0], "col": to_add[:, 1]})
     ], axis=0).reset_index(drop=True)
 
-def rewire_step(M, detect_at_dims, remove_at_dim, n, positions, **kwargs):
-    smpl = connalysis.network.topology.list_simplices_by_dimension(M.matrix)
-    edge_part = edge_participation_df(M)
+def rewire_step(M, detect_at_dims, remove_at_dim, n, positions, restrict=False, per=5, **kwargs):
+    if restrict: # Restrict to simplices with ``top``nodes are sources for memory issues
+        from scipy.special import comb 
+        n_par=connalysis.network.topology.node_participation(M.matrix, threads=20)
+        # select nodes with on top per-percentile of aggregated node participation, weighted by the number of edges in a simplex
+        agg=(n_par*comb(n_par.columns+1,2)).sum(axis=1)
+        nodes=agg.loc[agg>numpy.percentile(agg, 100-per)].index.to_numpy()
+    else: nodes = None
+    smpl = connalysis.network.topology.list_simplices_by_dimension(M.matrix, threads=20, nodes=nodes, max_dim=max(detect_at_dims))
+    print("Counts of simplices considered for manipulation")
+    print(smpl.apply(len))
+    edge_part = edge_participation_df(M, max_dim=max(remove_at_dim))
+    
     print("""
         Before: 
 {0}
@@ -73,4 +83,5 @@ def rewire_step(M, detect_at_dims, remove_at_dim, n, positions, **kwargs):
     edges_to_add = find_high_participation(M, smpl, detect_at_dims, len(edges_to_remove), positions, **kwargs)
     edges_to_remove = edges_to_remove[:len(edges_to_add)]
     add_and_remove(M, edges_to_add, edges_to_remove)
+
 
