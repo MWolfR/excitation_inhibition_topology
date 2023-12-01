@@ -71,6 +71,10 @@ def override_connectivity(M, cfg):
     for override in cfg:
         print("Executing override...")
         idxx_pre, idxx_post = _pathway_idxx(M, override["pathway"])
+        kwargs={}
+        if "node_subselection" in override.keys():
+            kwargs['restrict']=override['node_subselection']['restrict_nodes']
+            kwargs['per']= override['node_subselection']['top_percentile_to_choose'] 
         if "matrix" in override.keys():
             repl_mat = load_override_connectome(override["matrix"])
         elif "rewire" in override.keys():
@@ -81,7 +85,8 @@ def override_connectivity(M, cfg):
                 print("Executing rewiring...")
                 rewire_step(repl_mat, rw["dims_add"],
                             rw["dims_remove"], rw["n"],
-                            rw["positions"])
+                            rw["positions"], 
+                           **kwargs)
             repl_mat = repl_mat.matrix
         assert len(idxx_pre) == repl_mat.shape[0]
         assert len(idxx_post) == repl_mat.shape[1]

@@ -15,7 +15,7 @@ def compress_id_ranges(dfs):
     return df_idxs, ugids
 
 def get_simplex_dataframes(M, dimensions):
-    simplices = connalysis.network.topology.list_simplices_by_dimension(M.matrix)
+    simplices = connalysis.network.topology.list_simplices_by_dimension(M.matrix,threads=20)
 
     dfs = [pandas.DataFrame(M.gids[_smpl])
            for _smpl in simplices.loc[dimensions]]
@@ -229,8 +229,8 @@ def simplex_cluster_disyn(disyn_mat, grp_df, normalization, cutoff=None):
     return values_inh
 
 
-def edge_participation_df(M):
-    ep = connalysis.network.topology.edge_participation(M.matrix)
+def edge_participation_df(M, max_dim=None):
+    ep = connalysis.network.topology.edge_participation(M.matrix, threads=20, max_dim=max_dim)
     idx = pandas.DataFrame(numpy.vstack(ep.index), columns=["row", "col"])
     ep.index = pandas.MultiIndex.from_frame(idx)
     ep = ep.loc[pandas.MultiIndex.from_frame(M._edge_indices)]
