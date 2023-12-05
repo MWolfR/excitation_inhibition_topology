@@ -11,6 +11,7 @@ def find_low_participation(ep_df, dim, n):
     return numpy.random.choice(cands, n, replace=False)
 
 def find_high_participation(M, smpl, dims, n, positions, nmax=50000):
+    m_csc = M.matrix.astype(bool).tocsc()
     count_df = pandas.DataFrame(numpy.empty((0, numpy.max(dims) + 1)))
     for dim in dims:
         tmp = pandas.DataFrame(smpl[dim])
@@ -25,21 +26,21 @@ def find_high_participation(M, smpl, dims, n, positions, nmax=50000):
     combos = numpy.vstack([(positions[i], positions[j])
                            for i in range(len(positions))
                            for j in range(i + 1, len(positions))])
-    n_per_combo = int(n / len(combos))
-    picked = []
     
+    ttl_count_df = pandas.DataFrame(numpy.zeros((len(count_df), 2)), index=count_df.index)
     for combo in combos:
-        a = count_df[combo[0]].dropna()
-        b = count_df[combo[1]].dropna()
-        i = numpy.random.choice(a.index.values, n_per_combo, p=a.values)
-        j = numpy.random.choice(b.index.values, n_per_combo, p=b.values)
-        v = (i != j)
-        i = i[v]; j = j[v]
-        
-        cands = numpy.vstack([i, j]).transpose()
-        cands = cands[~numpy.array(M.matrix.tocsc()[cands[:, 0], cands[:, 1]]).flatten()]
-        picked.append(cands)
-    
+        ttl_count_df = ttl_count_df.add(count_df[combo].fillna(0).values)
+
+    ttl_count_df = ttl_count_df / len(combos)
+    i = numpy.random.choice(ttl_count_df.index.values, n, p=ttl_count_df[0].values)
+    j = numpy.random.choice(ttl_count_df.index.values, n, p=ttl_count_df[1].values)
+
+    v = (i != j)
+    i = i[v]; j = j[v]
+
+    cands = numpy.vstack([i, j]).transpose()
+    picked = cands[~numpy.array(m_csc[cands[:, 0], cands[:, 1]]).flatten()]
+
     picked=numpy.unique(numpy.vstack(picked), axis=0)
     return picked
 
