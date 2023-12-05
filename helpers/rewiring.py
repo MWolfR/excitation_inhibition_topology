@@ -40,7 +40,7 @@ def find_high_participation(M, smpl, dims, n, positions, nmax=50000):
         cands = cands[~numpy.array(M.matrix.tocsc()[cands[:, 0], cands[:, 1]]).flatten()]
         picked.append(cands)
     
-    picked=np.unique(numpy.vstack(picked), axis=0)
+    picked=numpy.unique(numpy.vstack(picked), axis=0)
     return picked
 
 def add_and_remove(M, to_add, to_remove):
