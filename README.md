@@ -9,8 +9,9 @@ Analyses are using python (3.8 or above) in jupyter notebooks. Additionally, the
 - scipy
 - h5py
 - pandas
-- connectome_analysis
 - Connectome-Utilities
+
+Additionally, for advanced topological analyses, the [Connectome Analysis](https://github.com/danielaegassan/connectome_analysis/) package is required.
 
 ## Getting started
 This project conducts topological analyses of specified connectomes. The basic mode of operation is as follows:
