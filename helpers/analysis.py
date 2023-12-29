@@ -5,6 +5,18 @@ import connalysis
 import tqdm
 
 def compress_id_ranges(dfs):
+    """
+    Reindexes values in a DataFrame, compressing them to have [0 ... n] as values, where
+    n is the number of unique values in the DataFrame.
+
+    Args:
+      dfs: list of DataFrames with integer values
+
+    Returns: 
+      df_idxs: list of DataFrames with values adjusted as described
+      ugids: list of arrays, each holding the unique values in the corresponding DataFrame.
+      That is, dfs[i][col][j] == ugids[i][df_idxs[i][col][j]]
+    """
     ugids = [numpy.unique(_df.values) for _df in dfs]
     los = [pandas.Series(_gids, name="gid").reset_index().set_index("gid")["index"]
        for _gids in ugids]
@@ -15,6 +27,25 @@ def compress_id_ranges(dfs):
     return df_idxs, ugids
 
 def get_simplex_dataframes(M, dimensions):
+    """
+    Get the list of simplices in a ConnectivityMatrix for given dimensions.
+
+    Args:
+      M: a conntility.ConnectivityMatrix object
+      dimensions: list of dimensions to consider (list of ints)
+    
+    Returns:
+      simplices: The output of connalysis.network.topology.list_simplices_by_dimension
+      dfs: list of DataFrames. One entry per dimension. Each entry is a n x dim + 1
+        DataFrame, where dim is the corresponding dimension and n the number of simplices in
+        that dimension. Each entry specifies the "gid" of the node at the corresponding position
+        of the corresponding simplex..
+      df_idxs: Like dfs, but instead of returning the node "gid"s it returns the indices into
+      the sorted list of unique "gid"s.
+      ugids: Lists of sorted "gid"s.
+
+    See also: compress_id_range  
+    """
     simplices = connalysis.network.topology.list_simplices_by_dimension(M.matrix,threads=20)
 
     dfs = [pandas.DataFrame(M.gids[_smpl])
@@ -25,10 +56,36 @@ def get_simplex_dataframes(M, dimensions):
 
 
 def get_divergences(simplices):
+    """
+    From a simplex list calculate the simplex divergence. That is, the relative number of unique node ids
+    in each simplex position.
+
+    Args:
+      simplices: n x dim + 1 DataFrame of node ids of simplices, where n is the number of simplices and dim
+        the considered dimension.
+    
+    Returns:
+      A pandas.Series of length dim + 1 with the relative number of unique nodes in each simplex position.
+    """
     return simplices.apply(lambda _smpl: [len(numpy.unique(_x)) / len(_x) for _x in _smpl.transpose()])
 
 
 def exc_inh_sparce_matrices(M, ugids_smpl, ugids_nrn):
+    """
+    Returns the connectivity matrices from the "simplex" population to the "neuron" population and the other
+    way around.
+
+    Args:
+      M: A conntility.ConnectivityMatrix.
+      ugids_smpl: The "gid"s of nodes in the "simplex" population.
+      ugids_nrn: The "gid"s of nodes in the "neuron" population.
+
+    Returns:
+      m_nrn_smpl: A sparse matrix that is the adjacency matrix of connectivity from the "neuron" to the "simplex"
+        population.
+      m_smpl_nrn: A sparse matrix that is the adjacency matrix of connectivity from the "simplex" to the "neuron"
+        population.
+    """
     in_nrn = numpy.in1d(M.gids, ugids_nrn)
     in_smpl = numpy.in1d(M.gids, ugids_smpl)
 
@@ -44,6 +101,26 @@ def exc_inh_sparce_matrices(M, ugids_smpl, ugids_nrn):
 
 
 def get_simplex_neuron_path_df(m_nrn_smpl, m_smpl_nrn, df_idxs, str_neuron_population):
+    """
+    Get the DataFrames of disynaptic paths from a simplex via an (inhibitory) neuron to another simplex.
+    This is essentially a 3-dimensional sparse connectivity matrix between simplices and (inhibitory) neurons.
+    That is, a list of triplets, (i, j, k) such that entry is 1 if there is a connections from the neuron in
+    position j of simplex i to (inhibitory) neuron k; and another for the other direction (from neurons to simplices).
+
+    Args:
+      m_nrn_smpl: sparse connectivity matrix from the "neuron" population to the "simplex" population. 
+      m_smpl_nrn: sparse connectivity matrix from the "simplex" population to the "neuron" population.
+        Outputs of exc_inh_sparce_matrices
+      df_idxs: DataFrame of nodes in simplices (of a given dimension). Output of  get_simplex_dataframes
+      str_neuron_population: A string denoting the name of the column corresponding to the "neuron" population
+        in the output.
+
+    Returns:
+      Two DataFrames with MultiIndices. MultiIndex levels are called "Simplex", "Position" and str_neuron_population.
+      Entries exist if there is a connection from the node at the indicated position of
+      the indicated simplex to the indicated node; in m_smpl_nrn (first output) or m_nrn_smpl (second output).
+      Values of the DataFrame are the values in the sparse matrices for the corresponding connection.
+    """
     def to_adjacency_series_1(subm):
         subm = subm.tocoo()
         idx = pandas.MultiIndex.from_frame(pandas.DataFrame({"Position": subm.row, str_neuron_population: subm.col}))
@@ -61,12 +138,40 @@ def get_simplex_neuron_path_df(m_nrn_smpl, m_smpl_nrn, df_idxs, str_neuron_popul
 
 
 def simplex_specific_inout_degrees(s_n_paths, n_s_paths, str_neuron_population):
+    """
+    Counts the number of simplex neurons innervated by or innervating a given (inhibitory) neuron. 
+
+    Args:
+      s_n_paths:
+      n_s_paths: Outputs of get_simplex_neuron_path_df. See that function.
+      str_neuron_population: Input used for get_simplex_neuron_path_df. See that function.
+
+    Returns:
+      pandas.DataFrame; one row per (inhibitory) neuron. Two columns "In" and "Out" denoting the simplex
+      in- and out-degree respectively.
+    """
     return pandas.concat([s_n_paths.groupby(str_neuron_population).count(),
                           n_s_paths.groupby(str_neuron_population).count()],
                           keys=["In", "Out"], axis=1).fillna(0)
 
 
 def get_disynaptic_path_sum(s_n_path, n_s_path, tgt_dim, use_weight=False):
+    """
+    Count number of disynaptic paths between nodes in each position of a given simplex via an (inhibitory) 
+    neuron. 
+
+    Args:
+      s_n_path: pandas.DataFrame specifying connections from simplices to (inhibitory) neurons. MultiIndex
+        specifies simplex position and (inhibitory) neuron identifier. Entries exist if a connection exists
+        from simplex node to (inhibitory) neuron.
+      n_s_path: As s_n_path, but from neurons to simplices. See also: get_simplex_neuron_path_df.
+      tgt_dim: The dimension of the simplices considered.
+      use_weight (optional; default: False): If False, counts number of paths; if True, sum over weights
+      of existing paths.
+
+    Returns:
+      numpy.matrix, of shape n x n, where n is the number of simplices.
+    """
     mulA = s_n_path.unstack("Position", fill_value=0).reindex(columns=numpy.arange(tgt_dim + 1))
     mulB = n_s_path.unstack("Position", fill_value=0).reindex(columns=numpy.arange(tgt_dim + 1))
     reidx = mulB.index.union(mulA.index)
@@ -82,6 +187,10 @@ def get_disynaptic_path_sum(s_n_path, n_s_path, tgt_dim, use_weight=False):
 
 def sum_disynaptic_path_sum(s_n_paths, n_s_paths, tgt_dim, str_neuron_population,
                             min_degree={}, use_weight=False):
+    """
+    As get_disynaptic_path_sum, but counting paths for all simplices, not just a single one.
+    Output is normalized by the number of (inhibitory) neurons.
+    """
     import tqdm
 
     m_path_count = numpy.zeros((tgt_dim + 1, tgt_dim + 1))
@@ -98,6 +207,21 @@ def sum_disynaptic_path_sum(s_n_paths, n_s_paths, tgt_dim, str_neuron_population
     return m_path_count / len(smpl_deg.index)
 
 def to_coo_matrix(c_df, tgt_shape, str_neuron_population, shuffle_cols=[]):
+    """
+    Convert a DataFrame of the connections from simplices to neurons to a sparse.coo_matrix.
+
+    Args:
+      c_df: Simplex to neuron connectivity DataFrame. See get_simplex_neuron_path_df
+      tgt_shape: The shape of the output matrix (see below).
+      str_neuron_population: Name of the neuron population that was used as the input of 
+        get_simplex_neuron_path_df.
+      shuffle_cols (optional): Names of the columns to randomly shuffle to create a control.
+        Can be any combination of: "Simplex" and / or str_neuron_population. Default: No shuffle.
+
+    Returns:
+      n x m sparse matrix, where n is the number of simplices and m the number of neurons in the
+      specified (inhibitory) population.
+    """
     from scipy import sparse
 
     for col in shuffle_cols:
@@ -109,6 +233,15 @@ def to_coo_matrix(c_df, tgt_shape, str_neuron_population, shuffle_cols=[]):
 
 
 def normalize_coo_matrix(mtrx, axis):
+    """
+    Normalize values of a coo_matrix object, such that the sum over a specified axis is 1
+
+    Args:
+      mtrx: a coo_matrix object.
+      axis: Either 0 or 1, specifying the axis over which to normalize.
+
+    Returns: None, the coo_matrix is normalized in-place.
+    """
     t_sums = numpy.array(mtrx.mean(axis=axis)).flatten()
     attrs = ["col", "row"]
     mtrx.data = mtrx.data / t_sums[getattr(mtrx, attrs[axis])]
@@ -116,6 +249,23 @@ def normalize_coo_matrix(mtrx, axis):
 
 def get_disynaptic_con_mat(s_n_paths, n_s_paths, str_neuron_population, tgt_shape,
                            use_weight=False, normalize=False, shuffle_cols=[]):
+    """
+    Get matrix of the number of disynaptic paths from and to each simplex.
+
+    Args:
+      s_n_paths:
+      n_s_paths: Outputs of get_simplex_neuron_path_df. See that function.
+      str_neuron_population: Input used for get_simplex_neuron_path_df. See that function.
+      tgt_shape: Shape of the output matrix (see below).
+      use_weight (optional, default: False): If False, count number of paths; if True, sum over
+        weights of paths.
+      normalize: (optional, default: False): If True, normalize with respect to the total number
+        of paths from / to each simplex
+      shuffle_cols (optional, defalt: no shuffle): See to_coo_matrix.
+
+    Returns:
+      A n x n array, where n is the number of simplices. 
+    """
     if use_weight:
         m_smpl_i = to_coo_matrix(s_n_paths.groupby(["Simplex", str_neuron_population]).sum().reset_index(),
                                  tgt_shape, str_neuron_population, shuffle_cols=shuffle_cols)
@@ -138,6 +288,18 @@ def get_disynaptic_con_mat(s_n_paths, n_s_paths, str_neuron_population, tgt_shap
 
 
 def histogram_data_and_ctrl(m_data, m_ctrl, bins):
+    """
+    Create histograms of values in a "data" and a "control" distribution.
+
+    Args:
+      m_data: array with "data" values.
+      m_ctrl: array with "control" values.
+      bins: The binning to use
+
+    Returns:
+      A DataFrame with two columns. One with histogram counts for the "Data" and for the "Control"
+      distribution
+    """
     if not hasattr(bins, "__iter__"):
         bins = numpy.linspace(0, m_data.max(), bins)
     H_data = numpy.histogram(m_data.flatten(), bins=bins)[0]
