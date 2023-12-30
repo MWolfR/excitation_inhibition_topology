@@ -2,7 +2,14 @@ import numpy
 
 from matplotlib import pyplot as plt
 
+"""
+Various plots used in the notebooks.
+"""
+
 def plot_simplex_divergences(divergences):
+    """
+    Fig. 2B
+    """
     fig = plt.figure(figsize=(7, 2.5))
 
     ax = fig.add_subplot(1, 2, 1)
@@ -24,6 +31,9 @@ def plot_simplex_divergences(divergences):
 
 
 def indegree_outdegree_figure(indeg, outdeg, nbins):
+    """
+    Not used in final version.
+    """
     from scipy.interpolate import RegularGridInterpolator
     fig = plt.figure(figsize=(4, 4))
     
@@ -59,6 +69,9 @@ def indegree_outdegree_figure(indeg, outdeg, nbins):
     return fig
 
 def plot_disynaptic_path_sum(mat_disyn):
+    """
+    Not used in final version.
+    """
     ticks = [0, (mat_disyn.shape[0] - 1) / 2, mat_disyn.shape[0] - 1]
     fig = plt.figure(figsize=(3.5, 3.5))
     ax = fig.gca()
@@ -72,6 +85,9 @@ def plot_disynaptic_path_sum(mat_disyn):
     return fig
 
 def plot_position_degrees(paths_df):
+    """
+    Fig. 3C
+    """
     fig = plt.figure(figsize=(3.5, 3.5))
     ax = fig.gca()
     I = paths_df.groupby(["Simplex", "Position"]).count().unstack("Position", fill_value=0)
@@ -84,6 +100,9 @@ def plot_position_degrees(paths_df):
     return fig
 
 def summary_position_degrees(all_classic, all_smpl):
+    """
+    Related to Fig. 3D. But plotting only results for a single subnetwork.
+    """
     fig = plt.figure(figsize=(2.5, 3.5))
     ax = fig.add_subplot(2, 1, 1)
     cols = ["red", "blue"]
@@ -109,6 +128,9 @@ def summary_position_degrees(all_classic, all_smpl):
     return fig
     
 def plot_position_mean(paths_df):
+    """
+    Suppl. Fig. S1
+    """
     fig = plt.figure(figsize=(4.5, 3.5))
     ax = fig.gca()
     plt.colorbar(ax.imshow(paths_df.groupby(["Simplex", "Position"]).mean().unstack("Position", fill_value=0),
@@ -118,6 +140,9 @@ def plot_position_mean(paths_df):
     return fig
 
 def compare_disyn_inhibition(hists):
+    """
+    Fig. 4C
+    """
     fig = plt.figure(figsize=(3.5, 3))
     ax = fig.gca()
 
@@ -130,6 +155,9 @@ def compare_disyn_inhibition(hists):
     return fig
     
 def plot_overlaps_vs_disyn(ol_disyn_mat):
+    """
+    Fig. 4F
+    """
     fig = plt.figure(figsize=(3, 3))
     ax_main = fig.add_axes([0.1, 0.1, 0.6, 0.6])
     ax_tgt = fig.add_axes([0.1, 0.75, 0.6, 0.2])
@@ -154,6 +182,9 @@ def plot_overlaps_vs_disyn(ol_disyn_mat):
     return fig
 
 def plot_overlap_vs_disyn_corr(ol_disyn_cc, column_names):
+    """
+    Fig. 4H
+    """
     fig = plt.figure(figsize=(.75, 1.75))
     ax = fig.gca()
 
@@ -173,6 +204,9 @@ def plot_overlap_vs_disyn_corr(ol_disyn_cc, column_names):
     return fig
 
 def plot_overlap_vs_disyn_corr_l(ol_disyn_cc, column_names):
+    """
+    Alternate version.
+    """
     fig = plt.figure(figsize=(3.5, 3.5))
     ax = fig.gca()
     plt.colorbar(ax.imshow(ol_disyn_cc, clim=[0, 1.0]))
@@ -211,6 +245,9 @@ def _position_normalize_by_mean_pos(pos, mean_loc, M, node_is_exc):
 
 def plot_simplex_group_as_network(smplx_tgt_ids, M, Msmpl, Mnrn, simplices, s_n_paths, n_s_paths, name_nrn,
                                   tgt_dim, cfg):
+    """
+    Fig. 6A
+    """
     import networkx
     import pandas
     import connalysis
@@ -280,6 +317,9 @@ def plot_simplex_group_as_network(smplx_tgt_ids, M, Msmpl, Mnrn, simplices, s_n_
     return figs
 
 def save_plot(figs, root, name):
+    """
+    Saves a figure to specified locations.
+    """
     import os
     if not os.path.exists(root):
         os.makedirs(root)

@@ -6,6 +6,21 @@ import conntility
 from .network import filter_network
 
 def create_dd_control_networks(M, Msmpl, Mnrn, cols_coords, model_name, cfg):
+    """
+    Generates from a network a control model that preserves the original network's distance dependent
+    connection probability between and within two specified populations.
+
+    M: A ConnectivityMatrix of the original connectivity.
+    Msmpl: A subpopulation of M. 
+    Mnrn: Another subpopulation of M. Must be disjunct.
+    cols_coords: The names of the node properties to use as their x, y, z coordinates.
+    model_name: Not used. Reserved for future use.
+    cfg: Configuration that specifies paramters for the process.
+
+    Returns:
+    Msmpl: A control of the connectivity in the first population.
+    Mnrn: A control of connectivity in the second population.
+    """
     is_smpl = numpy.in1d(M.gids, Msmpl.gids)
     is_nrn = numpy.in1d(M.gids, Mnrn.gids)
 

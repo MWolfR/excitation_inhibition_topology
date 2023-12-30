@@ -4,7 +4,17 @@ import numpy
 import bluepysnap as snap
 import json
 
+"""
+Helper functions to load the connectivity of a network from multiple sources.
+To filter them into a subnetwork. And generate random control networks.
+"""
+
 def load_network(cfg):
+    """
+    Load the connectivity of a network from sources specified in cfg.
+
+    Returns it as a conntility.ConnectivityMatrix object.
+    """
     if "conntility" in cfg.keys():
         fn = cfg["conntility"]
         return conntility.ConnectivityMatrix.from_h5(fn, *cfg.get("args", []), **cfg.get("kwargs", {}))
@@ -36,6 +46,11 @@ def load_network(cfg):
         return conntility.ConnectivityMatrix(mat, vertex_properties=vertices)
 
 def filter_network(M, cfg):
+    """
+    Filter a ConnectivityMatrix according the specs in cfg.
+
+    Returns a filtered ConnectivityMatrix.
+    """
     for fltr in cfg:
         idx = M.index(fltr["column"])
         M = getattr(idx, fltr["function"])(*fltr.get("args", []), **fltr.get("kwargs", {}))
@@ -54,6 +69,12 @@ def _pathway_idxx(M, cfg):
     return idxx_pre, idxx_post
 
 def load_override_connectome(cfg):
+    """
+    Loads a connectivity matrix from a pickle file that can be used to override parts
+    of a connectome.
+
+    Returns a sparse matrix.
+    """
     import pickle
     from scipy import sparse
     assert "pkl" in cfg.keys()
@@ -68,6 +89,11 @@ def load_override_connectome(cfg):
     return mat
 
 def override_connectivity(M, cfg):
+    """
+    Overrides parts of a connectome with a custom (rewired) connectome as specified in cfg.
+
+    Returns None, but changes the connectivity of M in place.
+    """
     for override in cfg:
         print("Executing override...")
         idxx_pre, idxx_post = _pathway_idxx(M, override["pathway"])

@@ -308,6 +308,18 @@ def histogram_data_and_ctrl(m_data, m_ctrl, bins):
 
 
 def simplex_overlap_in_positions(data_df, pos_idx, ugid):
+    """
+    Calculates the number of overlapping nodes for each pair of simplices in the specified positions.
+
+    Args:
+      data_df: DataFrame of node "gid"s of simplices
+      pos_idx: Positions to consider the overlap in. I.e., [0, 1, 2] would calculate the overlap in the
+        first three simplex positions.
+      ugid: List of unique node "gid"s in simplices.
+
+    Returns:
+      n x n array specifying the number of overlapping nodes for each pair of simplices. 
+    """
     from scipy import sparse
     use_idx = data_df[pos_idx]
     shape = (len(data_df), len(ugid))
@@ -321,6 +333,25 @@ def simplex_overlap_in_positions(data_df, pos_idx, ugid):
 
 
 def overlaps_vs_disyn(ol_src, ol_tgt, disyn_nrn_mat):
+    """
+    Calculates correlation between simplex overlaps at the source and target side and the strength
+    of disynaptic inhibition.
+
+    Args:
+      ol_src: n x n array with integer values. (Meant to specify overlap at the source side for each
+        pair of n simplices)
+      ol_tgt: n x n array with integer values. (Meant to specify overlap at the target side for each
+        pair of n simplices)
+      disyn_nrn_mat: n x n array. (Meant to specify strength of disynaptic inhibition between each
+        pair of n simplices)
+
+    Returns:
+      ol_disyn_mat: a x b array, where a is the number of unique values in ol_src and b is the number
+        of unique values in ol_tgt. For each combination of unique values the mean value of 
+        disyn_nrn_mat where those values are obtained.
+      ol_disyn_cc: Correlation between the values of the three inputs. Shape 3 x 3. Output of numpy.corrcoef
+      columns: List of string specifying the order of rows / columns in ol_disyn_cc.
+    """
     def offdiagonal(mat):
         return mat[numpy.eye(mat.shape[0]) == 0]
     
@@ -332,6 +363,17 @@ def overlaps_vs_disyn(ol_src, ol_tgt, disyn_nrn_mat):
     return ol_disyn_mat, ol_disyn_cc, master_df.columns
 
 def merge_small_clusters(grp_df, frac_merge_clst):
+    """
+    Postprocessing of the output of a clustering run. All clusters smaller than a cutoff
+    are merged into a single "dump" cluster. The id of that "dump" cluster will be larger
+    than that of all proper clusters, placing it at the end.
+
+    Args:
+      grp_df: Raw clustering results. DataFrame with one clustering output in each column.
+        All columns will be independently post-processed.
+      frac_merge_clst: Determines the cutoff for small clusters. Clusters smaller than this
+        fraction of the largest cluster will be merged.
+    """
     grp_df = grp_df.copy()
     for col in grp_df.columns:
         lbls_counts = grp_df[col].value_counts()
@@ -344,6 +386,18 @@ def merge_small_clusters(grp_df, frac_merge_clst):
     return grp_df
 
 def simplex_clustering(ol_src, ol_tgt, clst_param):
+    """
+    Generates clusters of simplices from their overlaps.
+
+    Args:
+      ol_src: array of overlaps on the source side. Shape n x n, where n is the number of simplices.
+      ol_tgt: array of overlaps on the target side.
+      clst_param: Cluster parameter given to the Louvain clusterer.
+
+    Returns:
+      DataFrame with cluster assignments. Two columns, one based on source side overlaps, the other 
+      based on target side overlap.
+    """
     from sknetwork.clustering import Louvain
 
     lbls_src = Louvain(clst_param).fit_predict(ol_src)
@@ -354,22 +408,40 @@ def simplex_clustering(ol_src, ol_tgt, clst_param):
 
 
 def simplex_cluster_connectivity(data_df, grp_df, ugid, normalization):
+    """
+    Calculates the average total overlap between pairs of simplices in simplex groups.
+    Since nodes in a simplex are highly connected, this is a proxy of excitatory connection
+    strengths between simplex groups. 
+
+    Args:
+      data_df: DataFrame of node "gid"s of simplices
+      grp_df: DataFrame of simplex clustering results. See simplex_clustering.
+      ugid: list of unique "gid"s of nodes in simplices. 
+      normalization: Specify how the results are normalized. One of: "None", "target", "source",
+        or "pairs".
+
+    Returns: 
+      Array of total overlap strength between simplex clusters. Shape is u x v, where u is
+      the number of source clusters, and v is the number of target clusters.
+    """
     full_overlap = simplex_overlap_in_positions(data_df, numpy.arange(data_df.shape[1]), ugid)
     return simplex_cluster_disyn(full_overlap, grp_df, normalization, cutoff=None)
-    # values = grp_df.value_counts().sort_index().unstack("tgt_grp", fill_value=0)
-
-    # if normalization == "None":
-    #     pass
-    # elif normalization == "target":
-    #     values = values / grp_df["tgt_grp"].value_counts().sort_index()
-    # elif normalization == "source":
-    #     values = (values.transpose() / grp_df["src_grp"].value_counts().sort_index()).transpose()
-    # elif normalization == "pairs":
-    #     pairs = grp_df["src_grp"].value_counts().sort_index().values.reshape((-1, 1)) * grp_df["tgt_grp"].value_counts().sort_index().values.reshape((1, -1))
-    #     values = values / pairs
-    # return values
 
 def simplex_cluster_disyn(disyn_mat, grp_df, normalization, cutoff=None):
+    """
+    Calculates total strength of connectivity between simplex groups.
+
+    Args:
+      disyn_mat: Array of connections strengths between simplices. E.g., the output of get_disynaptic_con_mat.
+      grp_df: DataFrame of simplex clustering results. See simplex_clustering.
+      normalization: Specify how the results are normalized. One of: "None", "target", "source",
+        or "pairs".
+      cutoff (optional, default: None): If specified, values of disyn_mat below cutoff are ignored.
+
+    Returns: 
+      Array of connection strength (according to disyn_mat) between simplex clusters. Shape is u x v, 
+      where u is the number of source clusters, and v is the number of target clusters.
+    """
     lbls_src = grp_df["src_grp"]
     lbls_tgt = grp_df["tgt_grp"]
     
@@ -392,6 +464,18 @@ def simplex_cluster_disyn(disyn_mat, grp_df, normalization, cutoff=None):
 
 
 def edge_participation_df(M, max_dim=None):
+    """
+    Calculates edge partipation of each edge in a ConnectivityMatrix.
+
+    Args:
+      M: conntility.ConnectivityMatrix object.
+      max_dim: highest simplex dimension to consider.
+
+    Returns:
+      DataFrame with one column per simplex dimension. Index is a MultiIndex with two levels:
+      "row" and "col" that specify the index of the source and target node of the corresponding
+      edge. The order of rows (i.e. edges) matches their order in M.
+    """
     ep = connalysis.network.topology.edge_participation(M.matrix, threads=20, max_dim=max_dim)
     idx = pandas.DataFrame(numpy.vstack(ep.index), columns=["row", "col"])
     ep.index = pandas.MultiIndex.from_frame(idx)
