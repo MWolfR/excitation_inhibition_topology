@@ -4,13 +4,44 @@ import numpy
 
 from .analysis import edge_participation_df
 
+"""
+Functions for rewiring a network to increase edge participation.
+"""
+
 def find_low_participation(ep_df, dim, n):
+    """
+    Finds edges with low maximum edge participation values.
+
+    Args:
+      ep_df: DataFrame of edge participation values.
+      dim: Dimensions to use. Edges with maximum edge participation in this list will be candiates.
+      n: (Max) number of edges to select from the candidates.
+
+    Returns: 
+      Indices of selected candidates.
+    """
     max_dim = (ep_df > 0).sum(axis=1) - 1
     cands = numpy.nonzero(max_dim.isin(dim))[0]
     n = numpy.minimum(n, len(cands))
     return numpy.random.choice(cands, n, replace=False)
 
 def find_high_participation(M, smpl, dims, n, positions, nmax=50000):
+    """
+    Finds unconnected pairs of nodes, such that connecting them will increase edge participation. 
+
+    Args:
+      M: A ConnectivityMatrix object.
+      smpl: List of simplices
+      dims: List of target dimensions. Nodes with high participation in these dimensions will be prefered.
+      n: Number of pairs to find.
+      positions: List of target simplex positions. Nodes participating in these positions in simplices will
+        be preferred.
+      nmax (optional, int; default: 50000): To preserve memory, only that number of simplices is considered
+        with the rest discarded.
+
+    Returns:
+      List of tuples of pairs to connect.
+    """
     count_df = pandas.DataFrame(numpy.empty((0, numpy.max(dims) + 1)))
     for dim in dims:
         tmp = pandas.DataFrame(smpl[dim])
@@ -44,6 +75,17 @@ def find_high_participation(M, smpl, dims, n, positions, nmax=50000):
     return picked
 
 def add_and_remove(M, to_add, to_remove):
+    """
+    Performs the rewiring. Removes the edges with the specified indices and adds edges between
+    the specified unconnected pairs.
+
+    Args:
+      M: conntility.ConnectivityMatrix object.
+      to_add: List of pairs of nodes to connect.
+      to_remove: Indices of edges to remove.
+
+    Returns: None; rewires M in place.
+    """
     print("Removing {0} edges...".format(len(to_remove)))
     idx_keep = numpy.setdiff1d(range(len(M.edges)), to_remove)
     M._edges = M._edges.iloc[idx_keep]
@@ -63,6 +105,9 @@ def add_and_remove(M, to_add, to_remove):
     ], axis=0).reset_index(drop=True)
 
 def rewire_step(M, detect_at_dims, remove_at_dim, n, positions, restrict=False, per=5, **kwargs):
+    """
+    Executes a rewiring step as configured.
+    """
     if restrict: # Restrict to simplices with ``top``nodes are sources for memory issues
         from scipy.special import comb 
         n_par=connalysis.network.topology.node_participation(M.matrix, threads=20)
