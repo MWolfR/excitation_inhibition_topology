@@ -49,7 +49,7 @@ This is the recommended way to run the analyses. Because the data in this format
 
 The connectome hdf5 files themselves are available on Zenodo. In the manuscript we compare the Microns connectome to the connectivity in the model of Isbister et al.
 - [Microns connectome on Zenodo](https://zenodo.org/doi/10.5281/zenodo.8364069). 
-- [Isbister et al. model connectome on Zenodo](ADD LINK!).
+- [Isbister et al. model connectome on Zenodo](https://doi.org/10.5281/zenodo.10079406).
 
 #### Sonata
 Loading from SONATA is configured as follows:
