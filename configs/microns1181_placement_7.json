@@ -1,0 +1,105 @@
+{
+  "connectome": {
+    "cols_xyz": [
+      "x_nm",
+      "y_nm",
+      "z_nm"
+    ],
+    "loading": {
+      "conntility": "/gpfs/bbp.cscs.ch/home/reimann/data/mm3/microns_mm3_connectome_v1181_2.h5",
+      "args": [
+        "condensed"
+      ]
+    },
+    "subnetwork": {
+      "base_volume": [],
+      "simplices": [
+        {
+          "column": "classification_system",
+          "function": "eq",
+          "args": [
+            "excitatory_neuron"
+          ]
+        },
+        {
+          "column": "x_nm",
+          "function": "gt",
+          "args": [
+            700000.0
+          ]
+        },
+        {
+          "column": "x_nm",
+          "function": "lt",
+          "args": [
+            1200000.0
+          ]
+        },
+        {
+          "column": "z_nm",
+          "function": "gt",
+          "args": [
+            700000.0
+          ]
+        },
+        {
+          "column": "z_nm",
+          "function": "lt",
+          "args": [
+            1000000.0
+          ]
+        }
+      ],
+      "neurons": {
+        "name": "Inhibitory",
+        "filters": [
+          {
+            "column": "classification_system",
+            "function": "eq",
+            "args": [
+              "inhibitory_neuron"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "analysis": {
+    "simplex_dimension": 6,
+    "use_weight": 0,
+    "min_degrees": {
+      "In": 200,
+      "Out": 200
+    },
+    "normalize_mat": 0,
+    "clustering": {
+      "use": "source",
+      "cluster_param": 2.2,
+      "merge_smaller_than": 0.05,
+      "normalize_cluster_paths": "pairs",
+      "normalize_cluster_disyn": "pairs",
+      "cutoff": {
+        "strategy": "percentile_control",
+        "value": 95
+      }
+    }
+  },
+  "plotting": {
+    "output_root": "plots/microns1181/7",
+    "networks": {
+      "nrn_minimum_indegree": 20,
+      "nrn_minimum_outdegree": 20,
+      "nrn_num_picked": 20,
+      "positioning": [
+        "raw",
+        "percentile",
+        "mean_pos",
+        "horizontal"
+      ]
+    }
+  },
+  "save": {
+    "filename": "save/microns1181_results.h5",
+    "id": 7
+  }
+}

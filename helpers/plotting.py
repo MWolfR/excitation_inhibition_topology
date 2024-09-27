@@ -99,7 +99,7 @@ def plot_position_degrees(paths_df):
     ax.set_xlabel("Position")
     return fig
 
-def summary_position_degrees(all_classic, all_smpl):
+def summary_position_degrees(all_classic, all_smpl, labels=("", ""), add_title=False):
     """
     Related to Fig. 3D. But plotting only results for a single subnetwork.
     """
@@ -108,23 +108,27 @@ def summary_position_degrees(all_classic, all_smpl):
     cols = ["red", "blue"]
     offset = [-0.01, 0.01]
 
-    for data, col, o in zip([all_classic["In"], all_smpl["In"]], cols, offset):
+    for data, col, o, lbl in zip([all_classic["In"], all_smpl["In"]], cols, offset, labels):
         mn = data.mean(axis=0)
         sd = data.std(axis=0)
         x = numpy.linspace(0, 1, len(mn)) + o
-        ax.errorbar(x, mn, yerr=sd, color=col, marker='o')
+        ax.errorbar(x, mn, yerr=sd, color=col, marker='o', label=lbl)
     ax.set_frame_on(False)
     ax.set_xticks([0, 0.5, 1]); ax.set_xticklabels(["Source", "->", "Sink"])
+    if add_title:
+        ax.set_title("In-degrees")
 
     ax = fig.add_subplot(2, 1, 2)
 
-    for data, col, o in zip([all_classic["Out"], all_smpl["Out"]], cols, offset):
+    for data, col, o, lbl in zip([all_classic["Out"], all_smpl["Out"]], cols, offset, labels):
         mn = data.mean(axis=0)
         sd = data.std(axis=0)
         x = numpy.linspace(0, 1, len(mn)) + o
-        ax.errorbar(x, mn, yerr=sd, color=col, marker='o')
+        ax.errorbar(x, mn, yerr=sd, color=col, marker='o', label=lbl)
     ax.set_frame_on(False)
     ax.set_xticks([0, 0.5, 1]); ax.set_xticklabels(["Source", "->", "Sink"])
+    if add_title:
+        ax.set_title("Out-degrees")
     return fig
     
 def plot_position_mean(paths_df):
