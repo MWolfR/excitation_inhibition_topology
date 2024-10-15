@@ -90,7 +90,8 @@ def plot_position_degrees(paths_df):
     """
     fig = plt.figure(figsize=(3.5, 3.5))
     ax = fig.gca()
-    I = paths_df.groupby(["Simplex", "Position"]).count().unstack("Position", fill_value=0)
+    I = paths_df.groupby(["Simplex", "Position"]).count().unstack("Position", fill_value=0).values
+    idxx = numpy.argsort(I.sum(axis=1)); I = I[idxx]
     img = ax.imshow(I, aspect="auto", interpolation="nearest")
     plt.colorbar(img)
     tcks = [0, (I.shape[1] - 1) / 2, I.shape[1] - 1]

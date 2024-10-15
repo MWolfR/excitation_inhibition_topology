@@ -15,18 +15,23 @@ Additionally, for advanced topological analyses, the [Connectome Analysis](https
 
 ## Getting started
 This project conducts topological analyses of specified connectomes. The basic mode of operation is as follows:
-1. Define source connectomes (data and any number of controls)
-2. Define subnetworks of the connectomes that are analyzed separately
-3. Run analyses for all subnetworks of all connectomes individually. For a specified subnetwork the analysis will generate a set of plots and extract a number of parameters that will be stored in an hdf5 file.
-4. Run an analysis that uses the exported data in the hdf5 files to compare source connectomes and characterize variability over subnetworks.
+1. Obtain source connectomes.
+2. Configure source connectomes, controls to use and subnetworks of the connectomes that are analyzed separately
+3. Run analyses for all subnetworks of all connectomes individually. For a specified subnetwork the analysis will generate a set of plots, most of which are used in the manuscript, and extract a number of parameters that will be stored in an hdf5 file.
+4. Run an analysis that uses the exported data in the hdf5 files to compare source connectomes and characterize variability over subnetworks. This steps creates additional plots that have been used in the manuscript.
+5. Additional validation analysis of the effect of proofreading on the results.
 
-Steps (1) and (2) are conducted using .json-formatted configuration files. They specifcy connectome, subnetwork, where to store results and a number of additional analysis parameters. We provide the config files used in our manuscript as part of this repository in ./configs.
+For step (1), simply obtain the .h5-formatted versions of the connectomes we analyzed by following the instructions in the "Data and Code Availability" statement of our preprint. There are three connectomes to obtain: v117 of the Microns data, v1181 of the Microns data, and the nbS1 model connectome.
 
-Step (3) is conducted by running the notebook [Topology of neurons...](./Topology%20of%20neurons%20relative%20to%20simplices.ipynb) and entering the path to a chosen configuration file where prompted.
+Step (2) is conducted using .json-formatted configuration files. They specific connectome, subnetwork, where to store results and a number of additional analysis parameters. We provide the config files used in our manuscript as part of this repository in ./configs. Note that to use them, you will have to update the paths to the source connectomes referenced inside them manually. Just provide the path to where you stored them.
+
+Step (3) is conducted by running the notebook [Topology of neurons...](./Topology%20of%20neurons%20relative%20to%20simplices.ipynb) and entering the path to a chosen configuration file where prompted. To recreate the exact results from the paper, you will have to run it for all subvolumes of nbS1, v117 of Microns and the distance-dependent controls associated with v117.
 
 After running (3) for several subvolumes of several connectomes, step (4) is conducted by running the notebook [Plot summary statistics](./Plot%20summary%20statistics.ipynb).
 
-Some additional analyses are conducted in the notebooks [Compare simplices...](./Compare%20simplices%20and%20edge%20participation.ipynb) and [Complexity of...](./Complexity%20of%20neighborhoods%20in%20different%20simplex%20positions.ipynb).
+Step (5) is a validation that our results are not due to reconstruction errors in the source data. Essentialy, it shows that focusing an analysis on proofread neurons strengthens instead of weakens the results found. This is done in two ways: First, simply going back to step (3), run it for the configs referencing v1181 of the Microns data. The logic is: Since v1181 is more proofread, results should become stronger or remain at the same strength. Second, run the notebook [Test of proofreading...](./Test%20effect%20of%20proofreading%20status.ipynb). It uses the configs files that reference v1181 of the Microns data and conducts specific analyses related to proofreading status and cell type annotations in the data. The results are exported to a hdf5 file. Then run [Plot test of proofreading](./Plot%20test%20of%20proofreading.ipynb), which reads the hdf5 file and creates additional plots that make up the paper. This step also performs analyses related to the different inhibitory subtypes.
+
+Some final analyses are conducted in the notebooks [Compare simplices...](./Compare%20simplices%20and%20edge%20participation.ipynb) and [Complexity of...](./Complexity%20of%20neighborhoods%20in%20different%20simplex%20positions.ipynb).
 
 For the exploration of a rewiring rule in Figure 6 of the manuscript, see [below](#rewiring-the-model-connectome).
 
@@ -48,7 +53,8 @@ This is the recommended way to run the analyses. Because the data in this format
 "name_of_connectome" is the name of a group inside the referenced hdf5 file that contains the connectome. For repeating the analyses we conducted in the manuscript, keep this entry as in the provided config files. Otherwise, see [conntility documentation](https://github.com/BlueBrain/ConnectomeUtilities/blob/main/README.md).
 
 The connectome hdf5 files themselves are available on Zenodo. In the manuscript we compare the Microns connectome to the connectivity in the model of Isbister et al.
-- [Microns connectome on Zenodo](https://zenodo.org/doi/10.5281/zenodo.8364069). 
+- [Microns v117 connectome on Zenodo](https://doi.org/10.5281/zenodo.8364070). 
+- [Microns v1181 connectome on Zenodo](https://doi.org/10.5281/zenodo.13849415).
 - [Isbister et al. model connectome on Zenodo](https://doi.org/10.5281/zenodo.10079406).
 
 #### Sonata
